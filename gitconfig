@@ -1,0 +1,7 @@
+[alias]
+  co = checkout
+  up = pull --rebase
+  put = push origin HEAD
+[core]
+	excludesfile = ~/.gitignore
+	editor = vim
