@@ -8,14 +8,14 @@ if [[ ! $(sudo -l) ]]; then
 fi 
 
 if ! ${err}; then
-  read -n1 -p "Do want update system? [N,y]" doit
+  read -n1 -p "Do you want update system? [N,y]" doit
   case $doit in
     y|Y) sudo apt-get update && apt-get upgrade ;;
     *) echo "Skipping update" ;;
   esac
 fi
 
-for i in vim vimrc gitignore; do
+for i in vim vimrc gitignore bashrc; do
   ln -s -f -n $(pwd)/${i} ~/.${i}
 done
 
