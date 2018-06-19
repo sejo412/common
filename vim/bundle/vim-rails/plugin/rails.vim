@@ -39,7 +39,7 @@ function! RailsDetect(...) abort
   endif
 endfunction
 
-function! s:log_detect() abort
+function! s:LogDetect() abort
   let path = matchstr(get(w:, 'quickfix_title'), '\<cgetfile \zs.*\ze[\\/]log[\\/].*.log$')
   if !empty(path) && filereadable(path . '/config/environment.rb') && isdirectory(path . '/app')
     let b:rails_root = path
@@ -96,11 +96,7 @@ augroup railsPluginDetect
         \ if &filetype !=# 'ruby' | set filetype=ruby | endif
   autocmd BufReadPost *.log if RailsDetect() | set filetype=railslog | endif
 
-  autocmd FileType qf call s:log_detect()
-  autocmd FileType railslog call rails#log_setup()
-  autocmd Syntax railslog call rails#log_syntax()
-  autocmd Syntax ruby,eruby,haml,javascript,coffee,css,sass,scss
-        \ if RailsDetect() | call rails#buffer_syntax() | endif
+  autocmd FileType qf call s:LogDetect()
 
   autocmd User ProjectionistDetect
         \ if RailsDetect(get(g:, 'projectionist_file', '')) |
@@ -110,6 +106,17 @@ augroup railsPluginDetect
 augroup END
 
 command! -bang -bar -nargs=* -count -complete=customlist,rails#complete_rails Rails execute rails#command(<bang>0, '<mods>', !<count> && <line1> ? -1 : <count>, <q-args>)
+
+" }}}1
+" dadbod.vim support {{{1
+
+call extend(g:, {'db_adapters': {}}, 'keep')
+call extend(g:db_adapters, {
+      \ 'oracle-enhanced': 'oracle',
+      \ 'mysql2': 'mysql',
+      \ 'sqlite3': 'sqlite'}, 'keep')
+
+let g:db_adapter_rails = 'rails#db_'
 
 " }}}1
 " abolish.vim support {{{1

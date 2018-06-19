@@ -184,7 +184,7 @@ def find_it():
             text=env.lines[oc.lineno - 1] if oc.resource.real_path == env.curbuf.name else "", # noqa
             lnum=oc.lineno,
         ))
-    env.let('loclist._loclist', lst)
+    env.run('g:PymodeLocList.current().extend', lst)
 
 
 def update_python_path(paths):
@@ -893,7 +893,7 @@ def _insert_import(name, module, ctx):
         return True
 
     pyobject = ctx.project.pycore.resource_to_pyobject(ctx.resource)
-    import_tools = importutils.ImportTools(ctx.project.pycore)
+    import_tools = importutils.ImportTools(ctx.project)
     module_imports = import_tools.module_imports(pyobject)
     new_import = importutils.FromImport(module, 0, [[name, None]])
     module_imports.add_import(new_import)

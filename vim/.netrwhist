@@ -1,9 +1,8 @@
 let g:netrw_dirhistmax  =10
-let g:netrw_dirhist_cnt =7
-let g:netrw_dirhist_1='/home/spe/work/chef/cookbooks/web_videocomfort/attributes'
-let g:netrw_dirhist_2='/home/spe/work/chef/cookbooks/iptables/attributes'
-let g:netrw_dirhist_3='/home/spe/work/chef/cookbooks/rsyslog/attributes'
-let g:netrw_dirhist_4='/home/spe/work/chef/cookbooks/users/attributes'
-let g:netrw_dirhist_5='/home/spe/work/chef/roles'
-let g:netrw_dirhist_6='/home/spe/work/chef/cookbooks/fileout/attributes'
-let g:netrw_dirhist_7='/home/spe/work/chef/cookbooks/ssl_certs/attributes'
+let g:netrw_dirhist_cnt =6
+let g:netrw_dirhist_1='/home/spe/work/chef-vc-export/cookbooks/users/attributes'
+let g:netrw_dirhist_2='/home/spe/work/chef-vc-export/cookbooks/common/attributes'
+let g:netrw_dirhist_3='/home/spe/work/chef-vc-export/cookbooks/vc_videobackend/recipes'
+let g:netrw_dirhist_4='/home/spe/work/chef-vc-export/cookbooks/agent_violet/attributes'
+let g:netrw_dirhist_5='/home/spe/work/chef-vc-export/cookbooks/vcpusher/attributes'
+let g:netrw_dirhist_6='/home/spe/work/chef/cookbooks/exim/recipes'

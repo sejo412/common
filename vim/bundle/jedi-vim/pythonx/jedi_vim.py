@@ -25,6 +25,16 @@ else:
     ELLIPSIS = u"…"
 
 
+try:
+    # Somehow sys.prefix is set in combination with VIM and virtualenvs.
+    # However the sys path is not affected. Just reset it to the normal value.
+    sys.prefix = sys.base_prefix
+    sys.exec_prefix = sys.base_exec_prefix
+except AttributeError:
+    # If we're not in a virtualenv we don't care. Everything is fine.
+    pass
+
+
 class PythonToVimStr(unicode):
     """ Vim has a different string implementation of single quotes """
     __slots__ = []
@@ -73,11 +83,11 @@ def _catch_exception(string, is_eval):
 
 
 def vim_command(string):
-    _catch_exception(string, False)
+    _catch_exception(string, is_eval=False)
 
 
 def vim_eval(string):
-    return _catch_exception(string, True)
+    return _catch_exception(string, is_eval=True)
 
 
 def no_jedi_warning(error=None):
@@ -148,18 +158,61 @@ def _check_jedi_availability(show_error=False):
     return func_receiver
 
 
+current_environment = (None, None)
+
+
+def get_environment(use_cache=True):
+    global current_environment
+
+    vim_force_python_version = vim_eval("g:jedi#force_py_version")
+    if use_cache and vim_force_python_version == current_environment[0]:
+        return current_environment[1]
+
+    environment = None
+    if vim_force_python_version == "auto":
+        environment = jedi.api.environment.get_cached_default_environment()
+    else:
+        force_python_version = vim_force_python_version
+        if '0000' in force_python_version or '9999' in force_python_version:
+            # It's probably a float that wasn't shortened.
+            try:
+                force_python_version = "{:.1f}".format(float(force_python_version))
+            except ValueError:
+                pass
+        elif isinstance(force_python_version, float):
+            force_python_version = "{:.1f}".format(force_python_version)
+
+        try:
+            environment = jedi.get_system_environment(force_python_version)
+        except jedi.InvalidPythonEnvironment as exc:
+            environment = jedi.api.environment.get_cached_default_environment()
+            echo_highlight(
+                "force_python_version=%s is not supported: %s - using %s." % (
+                    vim_force_python_version, str(exc), str(environment)))
+
+    current_environment = (vim_force_python_version, environment)
+    return environment
+
+
 @catch_and_print_exceptions
 def get_script(source=None, column=None):
-    jedi.settings.additional_dynamic_modules = \
-        [b.name for b in vim.buffers if b.name is not None and b.name.endswith('.py')]
+    jedi.settings.additional_dynamic_modules = [
+        b.name for b in vim.buffers if (
+            b.name is not None and
+            b.name.endswith('.py') and
+            b.options['buflisted'])]
     if source is None:
         source = '\n'.join(vim.current.buffer)
     row = vim.current.window.cursor[0]
     if column is None:
         column = vim.current.window.cursor[1]
     buf_path = vim.current.buffer.name
-    encoding = vim_eval('&encoding') or 'latin1'
-    return jedi.Script(source, row, column, buf_path, encoding)
+
+    return jedi.Script(
+        source, row, column, buf_path,
+        encoding=vim_eval('&encoding') or 'latin1',
+        environment=get_environment(),
+    )
 
 
 @_check_jedi_availability(show_error=False)
@@ -173,7 +226,7 @@ def completions():
     if vim.eval('a:findstart') == '1':
         count = 0
         for char in reversed(vim.current.line[:column]):
-            if not re.match('[\w\d]', char):
+            if not re.match(r'[\w\d]', char):
                 break
             count += 1
         vim.command('return %i' % (column - count))
@@ -229,6 +282,7 @@ def tempfile(content):
     finally:
         os.unlink(f.name)
 
+
 @_check_jedi_availability(show_error=True)
 @catch_and_print_exceptions
 def goto(mode="goto", no_output=False):
@@ -250,7 +304,6 @@ def goto(mode="goto", no_output=False):
     elif mode == "assignment":
         definitions = script.goto_assignments()
 
-
     if no_output:
         return definitions
     if not definitions:
@@ -270,10 +323,12 @@ def goto(mode="goto", no_output=False):
                                     using_tagstack=using_tagstack)
                 if not result:
                     return []
-            if d.module_path and os.path.exists(d.module_path) and using_tagstack:
+            if (using_tagstack and d.module_path and
+                    os.path.exists(d.module_path)):
                 tagname = d.name
-                with tempfile('{0}\t{1}\t{2}'.format(tagname, d.module_path,
-                        'call cursor({0}, {1})'.format(d.line, d.column + 1))) as f:
+                with tempfile('{0}\t{1}\t{2}'.format(
+                        tagname, d.module_path, 'call cursor({0}, {1})'.format(
+                            d.line, d.column + 1))) as f:
                     old_tags = vim.eval('&tags')
                     old_wildignore = vim.eval('&wildignore')
                     try:
@@ -294,6 +349,10 @@ def goto(mode="goto", no_output=False):
         for d in definitions:
             if d.in_builtin_module():
                 lst.append(dict(text=PythonToVimStr('Builtin ' + d.description)))
+            elif d.module_path is None:
+                # Typically a namespace, in the future maybe other things as
+                # well.
+                lst.append(dict(text=PythonToVimStr(d.description)))
             else:
                 lst.append(dict(filename=PythonToVimStr(d.module_path),
                                 lnum=d.line, col=d.column + 1,
@@ -385,7 +444,8 @@ def show_call_signatures(signatures=()):
         line = vim_eval("getline(%s)" % line_to_replace)
 
         # Descriptions are usually looking like `param name`, remove the param.
-        params = [p.description.replace('\n', '').replace('param ', '', 1) for p in signature.params]
+        params = [p.description.replace('\n', '').replace('param ', '', 1)
+                  for p in signature.params]
         try:
             # *_*PLACEHOLDER*_* makes something fat. See after/syntax file.
             params[signature.index] = '*_*%s*_*' % params[signature.index]
@@ -580,9 +640,11 @@ def do_rename(replace, orig=None):
             continue
 
         if os.path.abspath(vim.current.buffer.name) != r.module_path:
+            assert r.module_path is not None
             result = new_buffer(r.module_path)
             if not result:
-                echo_highlight("Jedi-vim: failed to create buffer window for {0}!".format(r.module_path))
+                echo_highlight('Failed to create buffer window for %s!' % (
+                    r.module_path))
                 continue
 
         buffers.add(vim.current.buffer.name)
@@ -615,7 +677,7 @@ def py_import():
     args = shsplit(vim.eval('a:args'))
     import_path = args.pop()
     text = 'import %s' % import_path
-    scr = jedi.Script(text, 1, len(text), '')
+    scr = jedi.Script(text, 1, len(text), '', environment=get_environment())
     try:
         completion = scr.goto_assignments()[0]
     except IndexError:
@@ -638,7 +700,7 @@ def py_import_completions():
         comps = []
     else:
         text = 'import %s' % argl
-        script = jedi.Script(text, 1, len(text), '')
+        script = jedi.Script(text, 1, len(text), '', environment=get_environment())
         comps = ['%s%s' % (argl, c.complete) for c in script.completions()]
     vim.command("return '%s'" % '\n'.join(comps))
 

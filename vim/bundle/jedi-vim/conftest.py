@@ -6,7 +6,7 @@ import zipfile
 import pytest
 
 VSPEC_URL = 'https://github.com/kana/vim-vspec/archive/1.4.1.zip'
-CACHE_FOLDER = '.cache'
+CACHE_FOLDER = 'build'
 VSPEC_FOLDER = os.path.join(CACHE_FOLDER, 'vim-vspec-1.4.1')
 VSPEC_RUNNER = os.path.join(VSPEC_FOLDER, 'bin/vspec')
 TEST_DIR = 'test'
@@ -19,10 +19,18 @@ class IntegrationTestFile(object):
     def run(self):
         output = subprocess.check_output(
             [VSPEC_RUNNER, '.', VSPEC_FOLDER, self.path])
+        had_ok = False
         for line in output.splitlines():
-            if line.startswith(b'not ok') or line.startswith(b'Error'):
+            if (line.startswith(b'not ok') or
+                    line.startswith(b'Error') or
+                    line.startswith(b'Bail out!')):
                 pytest.fail("{0} failed:\n{1}".format(
                     self.path, output.decode('utf-8')), pytrace=False)
+            if not had_ok and line.startswith(b'ok'):
+                had_ok = True
+        if not had_ok:
+            pytest.fail("{0} failed: no 'ok' found:\n{1}".format(
+                self.path, output.decode('utf-8')), pytrace=False)
 
     @property
     def name(self):
@@ -60,7 +68,7 @@ def pytest_generate_tests(metafunc):
     """
     def collect_tests():
         for f in os.listdir(TEST_DIR):
-            if f.endswith('.vim'):
+            if f.endswith('.vim') and f != '_utils.vim':
                 yield IntegrationTestFile(os.path.join(TEST_DIR, f))
 
     tests = list(collect_tests())
