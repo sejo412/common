@@ -1,0 +1,2 @@
+to jedi-vim install jedi:
+pip[3] install jedi
