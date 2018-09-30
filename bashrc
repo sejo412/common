@@ -22,7 +22,8 @@ shopt -s checkwinsize
 
 PS1='\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]$(parse_git_branch)\[\033[00m\] \$ '
 
-alias ls='ls --color=auto'
+alias ls='ls -G'
+#alias ls='ls --color=auto'
 alias dir='dir --color=auto'
 alias vdir='vdir --color=auto'
 
@@ -39,7 +40,10 @@ if ! shopt -oq posix; then
     . /usr/share/bash-completion/bash_completion
   elif [ -f /etc/bash_completion ]; then
     . /etc/bash_completion
+  elif [ -f /usr/local/etc/bash_completion ]; then 
+    . /usr/local/etc/bash_completion
   fi
 fi
 
-export PATH="$PATH:$HOME/.rvm/bin"
+export PATH="/usr/local/opt/findutils/libexec/gnubin:/usr/local/opt/grep/libexec/gnubin:/usr/local/bin:$PATH:$HOME/.rvm/bin"
+export MANPATH="/usr/local/opt/findutils/libexec/gnuman:/usr/local/opt/grep/libexec/gnuman:$MANPATH"
