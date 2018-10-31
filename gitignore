@@ -1,4 +1,5 @@
 chef_test.yml
+vagrant.yml
 .DS_Store*
 ehthumbs.db
 Icon?
@@ -6,4 +7,3 @@ Thumbs.db
 *.swp
 *.swo
 *~
-vagrant.yml
