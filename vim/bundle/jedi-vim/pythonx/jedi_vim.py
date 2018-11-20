@@ -110,10 +110,9 @@ sys.path.insert(0, parso_path)
 
 try:
     import jedi
-except ImportError as e:
-    no_jedi_warning(str(e))
+except ImportError:
     jedi = None
-    jedi_import_error = str(e)
+    jedi_import_error = sys.exc_info()
 else:
     try:
         version = jedi.__version__
@@ -192,6 +191,13 @@ def get_environment(use_cache=True):
 
     current_environment = (vim_force_python_version, environment)
     return environment
+
+
+def get_known_environments():
+    """Get known Jedi environments."""
+    envs = list(jedi.api.environment.find_virtualenvs())
+    envs.extend(jedi.api.environment.find_system_environments())
+    return envs
 
 
 @catch_and_print_exceptions
@@ -285,27 +291,20 @@ def tempfile(content):
 
 @_check_jedi_availability(show_error=True)
 @catch_and_print_exceptions
-def goto(mode="goto", no_output=False):
+def goto(mode="goto"):
     """
-    :param str mode: "related_name", "definition", "assignment", "auto"
+    :param str mode: "definition", "assignment", "goto"
     :return: list of definitions/assignments
     :rtype: list
     """
     script = get_script()
     if mode == "goto":
-        definitions = [x for x in script.goto_definitions()
-                       if not x.in_builtin_module()]
-        if not definitions:
-            definitions = script.goto_assignments()
-    elif mode == "related_name":
-        definitions = script.usages()
+        definitions = script.goto_assignments(follow_imports=True)
     elif mode == "definition":
         definitions = script.goto_definitions()
     elif mode == "assignment":
         definitions = script.goto_assignments()
 
-    if no_output:
-        return definitions
     if not definitions:
         echo_highlight("Couldn't find any definitions for this.")
     elif len(definitions) == 1 and mode != "related_name":
@@ -344,22 +343,75 @@ def goto(mode="goto", no_output=False):
                                     repr(PythonToVimStr(old_wildignore)))
             vim.current.window.cursor = d.line, d.column
     else:
-        # multiple solutions
-        lst = []
-        for d in definitions:
-            if d.in_builtin_module():
-                lst.append(dict(text=PythonToVimStr('Builtin ' + d.description)))
-            elif d.module_path is None:
-                # Typically a namespace, in the future maybe other things as
-                # well.
-                lst.append(dict(text=PythonToVimStr(d.description)))
-            else:
-                lst.append(dict(filename=PythonToVimStr(d.module_path),
-                                lnum=d.line, col=d.column + 1,
-                                text=PythonToVimStr(d.description)))
-        vim_eval('setqflist(%s)' % repr(lst))
-        vim_eval('jedi#add_goto_window(' + str(len(lst)) + ')')
+        show_goto_multi_results(definitions)
     return definitions
+
+
+def relpath(path):
+    """Make path relative to cwd if it is below."""
+    abspath = os.path.abspath(path)
+    if abspath.startswith(os.getcwd()):
+        return os.path.relpath(path)
+    return path
+
+
+def annotate_description(d):
+    code = d.get_line_code().strip()
+    if d.type == 'statement':
+        return code
+    if d.type == 'function':
+        if code.startswith('def'):
+            return code
+        typ = 'def'
+    else:
+        typ = d.type
+    return '[%s] %s' % (typ, code)
+
+
+def show_goto_multi_results(definitions):
+    """Create a quickfix list for multiple definitions."""
+    lst = []
+    for d in definitions:
+        if d.in_builtin_module():
+            lst.append(dict(text=PythonToVimStr('Builtin ' + d.description)))
+        elif d.module_path is None:
+            # Typically a namespace, in the future maybe other things as
+            # well.
+            lst.append(dict(text=PythonToVimStr(d.description)))
+        else:
+            text = annotate_description(d)
+            lst.append(dict(filename=PythonToVimStr(relpath(d.module_path)),
+                            lnum=d.line, col=d.column + 1,
+                            text=PythonToVimStr(text)))
+    vim_eval('setqflist(%s)' % repr(lst))
+    vim_eval('jedi#add_goto_window(' + str(len(lst)) + ')')
+
+
+@catch_and_print_exceptions
+def usages(visuals=True):
+    script = get_script()
+    definitions = script.usages()
+    if not definitions:
+        echo_highlight("No usages found here.")
+        return definitions
+
+    if visuals:
+        highlight_usages(definitions)
+        show_goto_multi_results(definitions)
+    return definitions
+
+
+def highlight_usages(definitions, length=None):
+    for definition in definitions:
+        # Only color the current module/buffer.
+        if (definition.module_path or '') == vim.current.buffer.name:
+            # mathaddpos needs a list of positions where a position is a list
+            # of (line, column, length).
+            # The column starts with 1 and not 0.
+            positions = [
+                [definition.line, definition.column + 1, length or len(definition.name)]
+            ]
+            vim_eval("matchaddpos('jediUsage', %s)" % repr(positions))
 
 
 @_check_jedi_availability(show_error=True)
@@ -430,6 +482,7 @@ def show_call_signatures(signatures=()):
     if int(vim_eval("g:jedi#show_call_signatures")) == 2:
         return cmdline_call_signatures(signatures)
 
+    seen_sigs = []
     for i, signature in enumerate(signatures):
         line, column = signature.bracket_start
         # signatures are listed above each other
@@ -451,6 +504,11 @@ def show_call_signatures(signatures=()):
             params[signature.index] = '*_*%s*_*' % params[signature.index]
         except (IndexError, TypeError):
             pass
+
+        # Skip duplicates.
+        if params in seen_sigs:
+            continue
+        seen_sigs.append(params)
 
         # This stuff is reaaaaally a hack! I cannot stress enough, that
         # this is a stupid solution. But there is really no other yet.
@@ -584,8 +642,14 @@ def rename():
         vim_command('augroup END')
 
         vim_command("let s:jedi_replace_orig = expand('<cword>')")
+        line = vim_eval('getline(".")')
         vim_command('normal! diw')
-        vim_command('startinsert')
+        if re.match(r'\w+$', line[cursor[1]:]):
+            # In case the deleted word is at the end of the line we need to
+            # move the cursor to the end.
+            vim_command('startinsert!')
+        else:
+            vim_command('startinsert')
 
     else:
         # Remove autocommand.
@@ -629,7 +693,7 @@ def do_rename(replace, orig=None):
     saved_tab = int(vim_eval('tabpagenr()'))
     saved_win = int(vim_eval('winnr()'))
 
-    temp_rename = goto(mode="related_name", no_output=True)
+    temp_rename = usages(visuals=False)
     # Sort the whole thing reverse (positions at the end of the line
     # must be first, because they move the stuff before the position).
     temp_rename = sorted(temp_rename, reverse=True,
@@ -658,6 +722,7 @@ def do_rename(replace, orig=None):
 
         # Restore view.
         vim_command('call winrestview(%s)' % saved_view)
+        highlight_usages([r], length=len(replace))
 
     # Restore previous tab and window.
     vim_command('tabnext {0:d}'.format(saved_tab))
