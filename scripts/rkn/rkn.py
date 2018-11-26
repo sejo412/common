@@ -6,6 +6,7 @@ import csv
 
 
 def rkn_read(file_obj):
+    csv.field_size_limit(1000000)
     addresses = []
     fieldnames = ['ip', 'domain', 'url', 'who', 'doc', 'date']
     reader = csv.DictReader(file_obj, delimiter=';', fieldnames=fieldnames)
