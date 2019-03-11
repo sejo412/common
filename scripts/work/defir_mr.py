@@ -18,7 +18,7 @@ def load_config(config_file):
         try:
             config = yaml.load(stream)
         except yaml.YAMLError as exc:
-            print(exc)
+            print("!!!!\nХуйня в йамле \"%s\":\n!!!!\n%s" % (config_file, exc))
             config = None
     return config
 
@@ -75,18 +75,35 @@ if __name__ == "__main__":
                                 "--name-only", "--pretty=").split("\n")
     commits = repo.git.log("%s..%s" % (target_branch, source_branch),
                            "--pretty=%B").split("\n\n")
-    m_roles = []
-    n_roles = []
+    m_roles = m_envs = m_cooks = []
+    n_roles = n_envs = n_cooks = []
     text = ""
     for m_file in m_files:
         if "roles/" in m_file:
             m_roles.append(m_file)
+        elif "environments/" in m_file:
+            m_envs.append(m_file)
+        elif "cookbooks/" in m_file:
+            m_cooks.append(m_file)
     if len(m_roles) > 0:
+        u_roles = list(set(m_roles))
         text += "chef_roles: "
-        for role in m_roles:
+        for role in u_roles:
             n_roles.append(load_config("%s/%s" % (work_dir, role))['name'])
-        text += ", ".join(n_roles) + ";\n***\n"
-
+        text += ", ".join(n_roles) + ";\n"
+    if len(m_envs) > 0:
+        u_envs = list(set(m_envs))
+        text += "chef_environments: "
+        for env in u_envs:
+            n_envs.append(load_config("%s/%s" % (work_dir, env))['name'])
+        text += ", ".join(n_envs) + ";\n"
+    if len(m_cooks) > 0:
+        text += "chef_cookbooks: "
+        for cook in m_cooks:
+            if cook.split("/")[1] not in n_cooks:
+                n_cooks.append(cook.split("/")[1])
+        text += ", ".join(n_cooks) + ";\n"
+    text += "***\n"
     editor = os.environ.get('EDITOR','vim')
     cmd = [editor]
     if editor == "vim":
