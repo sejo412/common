@@ -35,6 +35,10 @@ function! XTermPasteBegin()
   return ""
 endfunction
 
+nnoremap <F2> :set invpaste paste?<CR>
+set pastetoggle=<F2>
+set showmode
+
 "imap :!setxkbmap us:!setxkbmap us,ru
 "nmap :!setxkbmap us:!setxkbmap us,ru
 
