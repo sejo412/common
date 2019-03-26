@@ -75,8 +75,12 @@ if __name__ == "__main__":
                                 "--name-only", "--pretty=").split("\n")
     commits = repo.git.log("%s..%s" % (target_branch, source_branch),
                            "--pretty=%B").split("\n\n")
-    m_roles = m_envs = m_cooks = []
-    n_roles = n_envs = n_cooks = []
+    m_roles = []
+    m_envs = []
+    m_cooks = []
+    n_roles = []
+    n_envs = []
+    n_cooks = []
     text = ""
     for m_file in m_files:
         if "roles/" in m_file:
