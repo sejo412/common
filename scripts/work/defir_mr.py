@@ -36,6 +36,9 @@ def choose_title(commits):
     while response not in range(1, len(titles)+1):
         try:
             response = int(input("Enter 1..%s: " % (len(titles))))
+        except KeyboardInterrupt:
+            print("ctr-c is pressed")
+            exit(0)
         except:
             print("Число, блеать! От %i до %i, блеать!" %
                   (1, len(titles)))
