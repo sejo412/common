@@ -19,5 +19,5 @@ rm -f ips.list
 sed -i 's/\/32//g' nets.list
 sed 's/\(.*\)/add address=\1 list=rkn/g' nets.list >> blocked.rsc
 rm -f nets.list
-scp blocked.rsc admin@192.168.88.1:/
-ssh admin@192.168.88.1 "import blocked.rsc"
+scp blocked.rsc admin@192.168.88.1:/disk1/
+ssh admin@192.168.88.1 "import /disk1/blocked.rsc"
