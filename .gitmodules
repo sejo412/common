@@ -25,3 +25,7 @@
 [submodule "vim/bundle/vim-ruby"]
 	path = vim/bundle/vim-ruby
 	url = git://github.com/vim-ruby/vim-ruby
+[submodule "scripts/rkn/net_list_minimizer"]
+	path = scripts/rkn/net_list_minimizer
+	url = https://github.com/phoenix-mstu/net_list_minimizer.git
+	branch = untested
