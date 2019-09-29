@@ -42,7 +42,7 @@ set showmode
 "imap :!setxkbmap us:!setxkbmap us,ru
 "nmap :!setxkbmap us:!setxkbmap us,ru
 
-py3 import os; import sys; sys.executable=os.path.join(sys.prefix, 'bin/python3')
+"py3 import os; import sys; sys.executable=os.path.join(sys.prefix, 'bin/python3')
 
 "=====================================================
 " Python-mode settings
