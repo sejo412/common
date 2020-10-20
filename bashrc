@@ -35,15 +35,9 @@ if [ -f ~/.bash_aliases ]; then
     . ~/.bash_aliases
 fi
 
-if ! shopt -oq posix; then
-  if [ -f /usr/share/bash-completion/bash_completion ]; then
-    . /usr/share/bash-completion/bash_completion
-  elif [ -f /etc/bash_completion ]; then
-    . /etc/bash_completion
-  elif [ -f /usr/local/etc/bash_completion ]; then 
-    . /usr/local/etc/bash_completion
-  fi
-fi
+[[ -r "/usr/local/etc/profile.d/bash_completion.sh" ]] && . "/usr/local/etc/profile.d/bash_completion.sh"
 
 export PATH="/usr/local/opt/coreutils/libexec/gnubin:/usr/local/opt/gnu-sed/libexec/gnubin:/usr/local/opt/findutils/libexec/gnubin:/usr/local/opt/grep/libexec/gnubin:/usr/local/bin:$PATH:$HOME/.rvm/bin"
 export MANPATH="/usr/local/opt/gnu-sed/libexec/gnuman:/usr/local/opt/findutils/libexec/gnuman:/usr/local/opt/grep/libexec/gnuman:$MANPATH"
+export KUBECONFIG="~/.kube/config"
+export DATASTORE_TYPE=kubernetes
