@@ -39,5 +39,5 @@ fi
 
 export PATH="/usr/local/opt/coreutils/libexec/gnubin:/usr/local/opt/gnu-sed/libexec/gnubin:/usr/local/opt/findutils/libexec/gnubin:/usr/local/opt/grep/libexec/gnubin:/usr/local/bin:$PATH:$HOME/.rvm/bin"
 export MANPATH="/usr/local/opt/gnu-sed/libexec/gnuman:/usr/local/opt/findutils/libexec/gnuman:/usr/local/opt/grep/libexec/gnuman:$MANPATH"
-export KUBECONFIG="~/.kube/config"
+export KUBECONFIG=~/.kube/config
 export DATASTORE_TYPE=kubernetes
