@@ -22,6 +22,7 @@ set ignorecase
 set smartcase
 set splitbelow
 set splitright
+"set cuc
 nnoremap <silent> <cr> :nohlsearch<cr><cr>
 
 let g:pymode_python = 'python3'
