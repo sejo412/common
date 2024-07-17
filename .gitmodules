@@ -1,6 +1,3 @@
-[submodule "scripts/rkn/z-i"]
-	path = scripts/rkn/z-i
-	url = git://github.com/zapret-info/z-i.git
 [submodule "vim/bundle/tabular"]
 	path = vim/bundle/tabular
 	url = git://github.com/godlygeek/tabular.git
