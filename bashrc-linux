@@ -1,0 +1,75 @@
+parse_git_branch() {
+     git branch 2> /dev/null | sed -e '/^[^*]/d' -e 's/* \(.*\)/ [\1]/g'
+#  git branch 2> /dev/null | sed -e 's/* \(.*\)/ [\1]/g'
+}
+
+RED=$(tput setaf 1)
+GREEN=$(tput setaf 2)
+
+parse_exit_code() {
+  local EXIT="$?"
+  if [ $EXIT == 0 ]; then printf "${GREEN}%s" "$(date "+%H:%M:%S")"; else printf "${RED}%s" "$(date "+%H:%M:%S")"; fi
+}
+
+export HISTCONTROL=erasedups
+export EDITOR=vim
+export HISTSIZE=999999
+export HISTFILESIZE=999999
+
+shopt -s extglob
+shopt -s cdspell
+shopt -s cdable_vars
+shopt -s checkhash
+shopt -s globstar
+shopt -s checkwinsize
+shopt -s mailwarn
+shopt -s sourcepath
+shopt -s no_empty_cmd_completion
+shopt -s cmdhist
+shopt -s histappend histreedit histverify
+shopt -s checkwinsize
+
+PROMPT_COMMAND='history -a'
+
+PS1=''
+#PS1+='$(parse_exit_code)\[\033[00m\] ($(basename $KUBECONFIG)) \[\033[01;34m\]\w\[\033[00m\]$(__git_ps1)\[\033[00m\] $ '
+PS1+='$(parse_exit_code) \[\033[00m\]($(basename $KUBECONFIG)) \[\033[01;34m\]\w\[\033[00m\]$(__git_ps1) $ '
+#PS1+='$(parse_exit_code)\[\033[00m\] ($(basename $KUBECONFIG)):\[\033[01;34m\]\w\[\033[00m\]$(parse_git_branch)\[\033[00m\]:\n$ '
+#PS1+='$(parse_exit_code)\[\033[00m\] \[\033[01;34m\]\w\[\033[00m\]$(parse_git_branch)\[\033[00m\] $ '
+#PS1+='$(parse_exit_code)\[\033[00m\] \[\033[01;34m\]\w\[\033[00m\]$(__git_ps1)\[\033[00m\] $ '
+#PS1+='\[\033[01;34m\]\w\[\033[00m\]$(parse_git_branch)\[\033[00m\] $ '
+
+alias ls='ls -G --color=auto'
+alias dir='dir --color=auto'
+alias vdir='vdir --color=auto'
+
+alias grep='grep --color=auto'
+alias fgrep='fgrep --color=auto'
+alias egrep='grep -E --color=auto'
+alias k='kubectl'
+alias kk='kubectl config set-context --current --namespace'
+
+if [ -f ~/.bash_aliases ]; then
+    . ~/.bash_aliases
+fi
+
+if ! shopt -oq posix; then
+  if [ -f /usr/share/bash-completion/bash_completion ]; then
+    . /usr/share/bash-completion/bash_completion
+  elif [ -f /etc/bash_completion ]; then
+    . /etc/bash_completion
+  fi
+fi
+
+
+export KUBECONFIG=~/.kube/test666
+export DATASTORE_TYPE=kubernetes
+export GOPATH=~/go
+#export PATH="/usr/local/opt/gnu-tar/libexec/gnubin:/usr/local/opt/sphinx-doc/bin:/usr/local/opt/coreutils/libexec/gnubin:/usr/local/opt/gnu-sed/libexec/gnubin:/usr/local/opt/findutils/libexec/gnubin:/usr/local/opt/grep/libexec/gnubin:/usr/local/bin:/usr/local/go/bin:$PATH:$HOME/.rvm/bin:$HOME/go/bin"`
+export PATH="$PATH:$HOME/.local/bin"
+
+. ~/.complete_alias
+
+
+alias kk_test666='export KUBECONFIG=~/.kube/test666'
+alias a-t='ansible-playbook -i ~/tests/test666.yml -e @~/tests/test666-extra.yml'
