@@ -10,3 +10,6 @@ Thumbs.db
 *~
 blocked.rsc
 .~lock.*.odt#
+.vscode/
+.idea/
+__pycache__/
